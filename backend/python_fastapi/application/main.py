@@ -9,6 +9,7 @@ backend configuration and exposes the stable ``backend.python_fastapi.applicatio
 from __future__ import annotations
 
 import logging
+import secrets
 from contextlib import asynccontextmanager
 
 from backend.python_fastapi.application.core.config import (
@@ -71,13 +72,24 @@ def create_application() -> FastAPI:
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
-        LOG.exception("database error while handling %s %s", request.method, request.url.path)
-        return JSONResponse(status_code=503, content={"detail": "database operation failed"})
+        reference_id = secrets.token_hex(4)
+        LOG.exception("database error ref=%s while handling %s %s", reference_id, request.method, request.url.path)
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "database operation failed", "reference_id": reference_id},
+            headers={"X-Error-Reference": reference_id},
+        )
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-        LOG.exception("unhandled error while handling %s %s", request.method, request.url.path)
-        return JSONResponse(status_code=500, content={"detail": "internal server error"})
+        # Keep traceback details in the server log and give support a short id to correlate safely.
+        reference_id = secrets.token_hex(4)
+        LOG.exception("unhandled error ref=%s while handling %s %s", reference_id, request.method, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "internal server error", "reference_id": reference_id},
+            headers={"X-Error-Reference": reference_id},
+        )
 
     # Build the middleware stack once, after handlers and middleware are final.
     app.middleware_stack = app.build_middleware_stack()

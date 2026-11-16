@@ -1,4 +1,5 @@
 import asyncio
+import json
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
@@ -69,6 +70,100 @@ class FastApiReportTests(unittest.TestCase):
         self.assertEqual(bad.exception.status_code,404)
         with self.assertRaises(HTTPException) as date:api.report_data('history',start_date=datetime(2026,2,1),end_date=datetime(2026,1,1),limit=10,offset=0)
         self.assertEqual(date.exception.status_code,422)
+
+    def test_mixed_timezone_date_ranges_compare_as_utc(self):
+        from fastapi import HTTPException
+        with self.assertRaises(HTTPException) as reversed_range:
+            api.report_data(
+                'history',
+                start_date=datetime(2026, 1, 1, 1, tzinfo=timezone(timedelta(hours=-2))),
+                end_date=datetime(2026, 1, 1),
+                limit=10,
+                offset=0,
+            )
+        self.assertEqual(reversed_range.exception.status_code, 422)
+        result = api.report_data(
+            'history',
+            start_date=datetime(2025, 12, 31, 22),
+            end_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            limit=10,
+            offset=0,
+        )
+        self.assertGreaterEqual(result['count'], 0)
+
+    def test_server_error_handler_logs_traceback_and_returns_reference(self):
+        from starlette.requests import Request
+
+        from backend.python_fastapi.application.main import app as web_app
+
+        request = Request({
+            'type': 'http',
+            'http_version': '1.1',
+            'method': 'GET',
+            'scheme': 'http',
+            'path': '/_test/error',
+            'raw_path': b'/_test/error',
+            'query_string': b'',
+            'headers': [],
+            'client': ('127.0.0.1', 1),
+            'server': ('127.0.0.1', 8000),
+        })
+        handler = web_app.exception_handlers[Exception]
+        with self.assertLogs('navic.backend', level='ERROR') as captured:
+            try:
+                raise RuntimeError('private traceback detail')
+            except RuntimeError as error:
+                response = asyncio.run(handler(request, error))
+
+        payload = json.loads(response.body)
+        reference_id = payload['reference_id']
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.headers['x-error-reference'], reference_id)
+        self.assertRegex(reference_id, r'^[0-9a-f]{8}$')
+        self.assertNotIn('private traceback detail', response.body.decode())
+        log_text = '\n'.join(captured.output)
+        self.assertIn(reference_id, log_text)
+        self.assertIn('private traceback detail', log_text)
+        self.assertIn('Traceback', log_text)
+
+    def test_simulator_fix_patterns_are_safe_for_trip_and_all_report_calculations(self):
+        """Exercise moving, idle, stopped, duplicate-time, out-of-order, and long-gap demo fixes."""
+        base = datetime.now(timezone.utc) - timedelta(hours=3)
+        fixtures = [
+            (4, 13.004, 80.004, 34.0, True),  # inserted first; sorts after the earlier points
+            (0, 13.000, 80.000, 32.0, True),
+            (1, 13.000, 80.000, 0.0, True),   # idle at an unchanged location
+            (1, 13.000, 80.000, 0.0, False),  # equal timestamp, stopped at the same location
+            (2, 13.001, 80.001, 29.0, True),
+            (45, 13.020, 80.020, 35.0, True), # >30-minute gap starts a new trip
+        ]
+        with self.factory() as db:
+            for index, (minutes, latitude, longitude, speed, ignition) in enumerate(fixtures):
+                db.add(LocationHistory(
+                    device_id='TEST_DEVICE',
+                    message_id=f'00000000-0000-0000-0000-{1000 + index:012d}',
+                    timestamp=base + timedelta(minutes=minutes),
+                    latitude=latitude,
+                    longitude=longitude,
+                    speed=speed,
+                    course=0.0,
+                    ignition=ignition,
+                    simulated=True,
+                    data_source='simulator',
+                ))
+            db.commit()
+
+        trips = api.report_endpoint('trip', limit=100, offset=0, user={'role': 'admin'})
+        simulated = [trip for trip in trips['data'] if trip.get('simulated')]
+        self.assertEqual(len(simulated), 2)
+        self.assertTrue(all(trip['data_sources'] == ['simulator'] for trip in simulated))
+        for report_type in sorted(api.REPORT_TYPES):
+            result = api.report_endpoint(report_type, limit=100, offset=0, user={'role': 'admin'})
+            json.dumps(result, allow_nan=False)
+
+    def test_degenerate_trip_endpoints_return_serializable_results(self):
+        result = api.list_trips(limit=100, offset=0, user={'role': 'admin'})
+        json.dumps(result, allow_nan=False)
 
     def test_vehicle_and_driver_crud_use_existing_database(self):
         driver_post=next(r.endpoint for r in api.app.routes if getattr(r,'path',None)=='/drivers' and 'POST' in getattr(r,'methods',set()))

@@ -20,6 +20,7 @@ import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from itertools import pairwise
+from math import isfinite
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Literal
@@ -74,10 +75,13 @@ from .models import (
 from .registry import DEFAULT_REGISTRY_PATH, DeviceRegistry
 from .reporting import (
     distance_km,
+    finite_number,
     idle_periods,
+    ordered_points,
     stationary_periods,
     trip_distance_km,
     trip_groups,
+    valid_coordinates,
 )
 from .schema import ensure_schema
 from .security import (
@@ -523,6 +527,17 @@ def _iso(value: datetime | None) -> str | None:
 def speed_limit(db) -> float:
     row = db.get(SystemSetting, "overspeed_kmh")
     return float(row.value) if row else float(os.getenv("OVERSPEED_KMH", "80"))
+
+
+def _json_safe(value: Any) -> Any:
+    """Replace non-finite values with null before strict JSON responses; other values retain their type."""
+    if isinstance(value, float):
+        return value if isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
 
 
 def device_offline_seconds(db) -> float:
@@ -2053,12 +2068,19 @@ def report_data(
         raise HTTPException(404, "unsupported report type")
     if limit < 1 or limit > 5000 or offset < 0:
         raise HTTPException(422, "limit must be 1-5000 and offset nonnegative")
-    if start_date and end_date and start_date > end_date:
+    # Query parameters may mix an explicit offset with a naive timestamp. Compare
+    # the instants in UTC so Python never raises on aware/naive datetime pairs.
+    if start_date and end_date and _as_utc(start_date) > _as_utc(end_date):
         raise HTTPException(422, "start_date must not be after end_date")
 
     with SessionLocal() as db:
-        points = list(db.scalars(_points_query(imei, vehicle_id, start_date, end_date)).all())
-        valid = [point for point in points if point.latitude is not None and point.longitude is not None]
+        points = list(
+            db.scalars(
+                _points_query(imei, vehicle_id, _as_utc(start_date), _as_utc(end_date))
+            ).all()
+        )
+        # Reports ignore corrupt coordinates and missing timestamps, then normalize ordering once.
+        valid = ordered_points(point for point in points if valid_coordinates(point))
         devices = _device_map(db)
         bus_by_id = _bus_map(db)
         bus_for = lambda point: bus_by_id.get(devices[point.device_id].bus_id) if devices.get(point.device_id) else None
@@ -2097,7 +2119,8 @@ def report_data(
             for index, group in enumerate(trip_groups(valid), 1):
                 bus = bus_for(group[0])
                 duration = (_as_utc(group[-1].timestamp) - _as_utc(group[0].timestamp)).total_seconds() / 60
-                speeds = [point.speed for point in group if point.speed is not None]
+                speeds = [speed for point in group if (speed := finite_number(point.speed)) is not None]
+                sources = sorted({point.data_source or ("simulator" if point.simulated else "hardware") for point in group})
                 rows.append(
                     {
                         "trip": index,
@@ -2115,6 +2138,8 @@ def report_data(
                 )
             rules = {
                 "trip_definition": "Consecutive fixes from one device separated by no more than 30 minutes.",
+                        "simulated": all(bool(point.simulated) for point in group),
+                        "data_sources": sources,
                 "distance": "great-circle segments up to 30 minutes and 100 km",
             }
 
@@ -2158,7 +2183,7 @@ def report_data(
                 moving_minutes = 0.0
                 for first, second in pairwise(group):
                     seconds = (_as_utc(second.timestamp) - _as_utc(first.timestamp)).total_seconds()
-                    if 0 <= seconds <= 1800 and (first.speed or 0) > 3:
+                    if 0 <= seconds <= 1800 and (finite_number(first.speed) or 0) > 3:
                         moving_minutes += seconds / 60
                 rows.append(
                     {
@@ -2249,7 +2274,7 @@ def report_data(
 
         elif report_type == "overspeed":
             threshold = speed_limit(db)
-            rows = [_point_row(point, bus_for(point)) for point in valid if point.speed is not None and point.speed > threshold]
+            rows = [_point_row(point, bus_for(point)) for point in valid if (speed := finite_number(point.speed)) is not None and speed > threshold]
             rules = {"threshold_kmh": threshold}
 
         elif report_type == "stoppage":
@@ -2320,7 +2345,7 @@ def report_data(
 
         total = len(rows)
         page = rows[offset : offset + limit]
-        return {
+        return _json_safe({
             "report_type": report_type,
             "period": {"start": start_date.isoformat() if start_date else None, "end": end_date.isoformat() if end_date else None},
             "sufficient_data": bool(page),
@@ -2329,7 +2354,7 @@ def report_data(
             "offset": offset,
             "rules": rules,
             "data": page,
-        }
+        })
 
 
 @app.get("/api/reports/{report_type}")
