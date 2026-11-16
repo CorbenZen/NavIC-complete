@@ -2,6 +2,7 @@
 
 Examples:
     python -m navic_tcp.manage_users bootstrap-admin --email admin@college.edu
+    python -m navic_tcp.manage_users bootstrap-admin --email another-admin@college.edu --user-id another-admin@college.edu --force
     python -m navic_tcp.manage_users create --email manager@college.edu --role transport
     python -m navic_tcp.manage_users create --email viewer@college.edu --role viewer --send-link
     python -m navic_tcp.manage_users list
@@ -15,20 +16,31 @@ development seed script).
 from __future__ import annotations
 
 import argparse
+import getpass
 import sys
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, inspect, select
 
 from . import auth as auth_service
+from .env import load_env_file
+
+# Load DATABASE_URL before importing db.py, which creates the engine at import
+# time; otherwise provisioning could silently target the default local store.
+load_env_file()
+
 from .db import SessionLocal, engine
 from .emailer import EmailConfigurationError, EmailDeliveryError, send_magic_link
-from .env import load_env_file
 from .models import User
-from .schema import ensure_schema
 from .security import hash_password
 
 ROLES = ("admin", "transport", "viewer")
+
+
+def _ensure_user_table() -> None:
+    """Create only the account table when absent; provisioning must not backfill fleet data."""
+    if not inspect(engine).has_table(User.__tablename__):
+        User.__table__.create(bind=engine, checkfirst=True)
 
 
 def _find(db, email: str) -> User | None:
@@ -43,19 +55,45 @@ def _send_link(db, user: User) -> None:
 
 
 def cmd_bootstrap_admin(args: argparse.Namespace) -> int:
-    ensure_schema(engine)
+    _ensure_user_table()
     email = auth_service.normalize_email(args.email)
     if not auth_service.valid_email(email):
         print("error: a valid --email is required", file=sys.stderr)
         return 2
+    password = args.password
+    if args.user_id and password is None:
+        password = getpass.getpass("New administrator password: ")
+        confirmation = getpass.getpass("Confirm administrator password: ")
+        if password != confirmation:
+            print("error: passwords do not match", file=sys.stderr)
+            return 2
+        if len(password) < 8 or not any(character.isalpha() for character in password):
+            print("error: password must be at least 8 characters and include a letter", file=sys.stderr)
+            return 2
     with SessionLocal() as db:
         existing = _find(db, email)
         if existing:
-            if existing.role == "admin" and existing.active:
+            if existing.role == "admin" and existing.active and not args.user_id and password is None:
                 print(f"{email} is already an active administrator.")
                 return 0
             existing.role = "admin"
             existing.active = True
+            existing.is_email_verified = True
+            existing.email_verified_at = existing.email_verified_at or datetime.now(timezone.utc)
+            if args.user_id:
+                normalized_user_id = args.user_id.strip().lower()
+                collision = db.scalar(
+                    select(User.id).where(
+                        func.lower(func.trim(User.user_id)) == normalized_user_id,
+                        User.id != existing.id,
+                    )
+                )
+                if collision is not None:
+                    print("error: that User ID is already assigned to another account", file=sys.stderr)
+                    return 1
+                existing.user_id = normalized_user_id
+            if password is not None:
+                existing.password_hash = hash_password(password)
             db.commit()
             print(f"Promoted existing account {email} to administrator.")
             return 0
@@ -66,8 +104,9 @@ def cmd_bootstrap_admin(args: argparse.Namespace) -> int:
         user = User(
             username=args.username or email,
             email=email,
+            user_id=args.user_id.strip().lower() if args.user_id else None,
             role="admin",
-            password_hash=hash_password(args.password) if args.password else "",
+            password_hash=hash_password(password) if password else "",
             email_verified_at=datetime.now(timezone.utc),
             is_email_verified=True,
             active=True,
@@ -82,7 +121,7 @@ def cmd_bootstrap_admin(args: argparse.Namespace) -> int:
 
 
 def cmd_create(args: argparse.Namespace) -> int:
-    ensure_schema(engine)
+    _ensure_user_table()
     email = auth_service.normalize_email(args.email)
     if not auth_service.valid_email(email):
         print("error: a valid --email is required", file=sys.stderr)
@@ -112,7 +151,7 @@ def cmd_create(args: argparse.Namespace) -> int:
 
 
 def cmd_list(_args: argparse.Namespace) -> int:
-    ensure_schema(engine)
+    _ensure_user_table()
     with SessionLocal() as db:
         users = list(db.scalars(select(User).order_by(User.id)).all())
     if not users:
@@ -126,7 +165,7 @@ def cmd_list(_args: argparse.Namespace) -> int:
 
 
 def cmd_set_role(args: argparse.Namespace) -> int:
-    ensure_schema(engine)
+    _ensure_user_table()
     if args.role not in ROLES:
         print(f"error: --role must be one of {', '.join(ROLES)}", file=sys.stderr)
         return 2
@@ -142,7 +181,7 @@ def cmd_set_role(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    ensure_schema(engine)
+    _ensure_user_table()
     with SessionLocal() as db:
         user = _find(db, args.email)
         if not user:
@@ -155,7 +194,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_invite(args: argparse.Namespace) -> int:
-    ensure_schema(engine)
+    _ensure_user_table()
     with SessionLocal() as db:
         user = _find(db, args.email)
         if not user or not user.active:
@@ -179,7 +218,12 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap = sub.add_parser("bootstrap-admin", help="create or promote the first administrator")
     bootstrap.add_argument("--email", default=None, help="administrator email (or BOOTSTRAP_ADMIN_EMAIL)")
     bootstrap.add_argument("--username", default=None)
-    bootstrap.add_argument("--password", default=None, help="optional legacy password; magic links are preferred")
+    bootstrap.add_argument("--user-id", default=None, help="optional login User ID for an additional administrator")
+    bootstrap.add_argument(
+        "--password",
+        default=None,
+        help="legacy option; avoid shell arguments, and prefer the secure prompt used with --user-id",
+    )
     bootstrap.add_argument("--force", action="store_true", help="create another admin when one already exists")
     bootstrap.add_argument("--send-link", action="store_true")
     bootstrap.set_defaults(func=cmd_bootstrap_admin)
@@ -214,7 +258,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    load_env_file()
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "bootstrap-admin" and not args.email:

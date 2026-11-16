@@ -282,6 +282,36 @@ class IdPasswordAuthTests(unittest.TestCase):
         self.assertEqual(result["user"]["role"], "admin")
         self.assertTrue(session_cookie(response))
 
+    def test_additional_provisioned_admin_can_sign_in_with_database_password(self):
+        admin_email = f"admin-{uuid4().hex[:6]}@college.example"
+        password = "second-admin-password"
+        with self.factory() as db:
+            db.add(
+                User(
+                    username=admin_email,
+                    email=admin_email,
+                    user_id=admin_email,
+                    role="admin",
+                    active=True,
+                    password_hash=hash_password(password),
+                    is_email_verified=True,
+                )
+            )
+            db.commit()
+        designated_email = f"primary-{uuid4().hex[:6]}@college.example"
+        with patch.dict(
+            os.environ,
+            {
+                "ADMIN_EMAIL": designated_email,
+                "ADMIN_PASSWORD_HASH": hash_password("primary-admin-password"),
+            },
+        ):
+            result, response = self.login(admin_email, password=password)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(result["user"]["email"], admin_email)
+        self.assertEqual(result["user"]["role"], "admin")
+        self.assertTrue(session_cookie(response))
+
     def test_admin_login_does_not_collide_with_a_normal_admin_named_user(self):
         # A normal account may legitimately register the identifier "ADMIN".
         self.register(self.data(user_id="ADMIN"))

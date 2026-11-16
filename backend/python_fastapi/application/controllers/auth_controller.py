@@ -350,18 +350,17 @@ def id_login(data: IdLoginIn, request: Request, response: Response):
         if user is None:
             _id_login_limiter.fail(key)
             raise HTTPException(401, _UNKNOWN_ID)
-        if user.role == "admin":
-            # Administrator credentials are only accepted through the
-            # configured admin email + password check above.
-            _id_login_limiter.fail(key)
-            raise HTTPException(401, _BAD_PASSWORD)
+        # The configured first administrator uses the environment-backed
+        # credential above. Other administrators are explicitly provisioned
+        # in the users table and authenticate against their own salted hash.
         if not user.password_hash or not verify_password(data.password, user.password_hash):
             _id_login_limiter.fail(key)
             raise HTTPException(401, _BAD_PASSWORD)
         if password_needs_rehash(user.password_hash):
             user.password_hash = hash_password(data.password)
         _id_login_limiter.reset(key)
-        return _establish_session(db, user, request, response, method="id_password")
+        method = "admin_id_password" if user.role == "admin" else "id_password"
+        return _establish_session(db, user, request, response, method=method)
 
 
 def verify_email(data: VerifyEmailIn, request: Request, response: Response):
