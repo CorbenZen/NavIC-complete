@@ -1,0 +1,32 @@
+[
+  {
+    "device_id": "SIM-IMEI-000000000001",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_imei",
+    "vehicle_id": "VEH-SIM-001",
+    "registration_number": "TN-00-SIM-001",
+    "driver_id": "DRV-SIM-001",
+    "driver_name": "Demo Driver 1",
+    "sim_identifier": "SIM-SIM-001"
+  },
+  {
+    "device_id": "SIM-IMEI-000000000002",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_imei",
+    "vehicle_id": "VEH-SIM-002",
+    "registration_number": "TN-00-SIM-002",
+    "driver_id": "DRV-SIM-002",
+    "driver_name": "Demo Driver 2",
+    "sim_identifier": "SIM-SIM-002"
+  },
+  {
+    "device_id": "SIM-SERIAL-000003",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "VEH-SIM-003",
+    "registration_number": "TN-00-SIM-003",
+    "driver_id": "DRV-SIM-003",
+    "driver_name": "Demo Driver 3",
+    "sim_identifier": null
+  }
+]

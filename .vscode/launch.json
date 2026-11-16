@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Website backend (FastAPI + TCP)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/run.py",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv-local/bin/python",
+      "envFile": "${workspaceFolder}/.env",
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Website frontend (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend",
+      "sourceMaps": true
+    },
+    {
+      "name": "Tracking server (TCP + HTTP API)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "navic_tcp.server_main",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "--host", "127.0.0.1",
+        "--port", "9000",
+        "--api-host", "127.0.0.1",
+        "--api-port", "8001"
+      ],
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Simulate 3 tracking devices",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "navic_tcp.client_main",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "--host", "127.0.0.1",
+        "--port", "9000",
+        "--devices", "3",
+        "--continuous",
+        "--interval", "2"
+      ],
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    }
+  ]
+}

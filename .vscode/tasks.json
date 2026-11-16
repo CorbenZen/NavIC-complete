@@ -1,0 +1,190 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Website: host (backend + frontend)",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Website: start backend (FastAPI + TCP)",
+        "Website: start frontend (Vite dev server)"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "args": []
+    },
+    {
+      "label": "Website: start backend (FastAPI + TCP)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "backend/run.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: start frontend (Vite dev server)",
+      "type": "process",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: build frontend",
+      "type": "process",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: seed demo data",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "-m",
+        "backend.python_sqlalchemy.database.seed"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: run backend tests",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "backend/tests",
+        "-t",
+        ".",
+        "-v"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Website: run all tests",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Website: run backend tests",
+        "Tracking: run tests"
+      ],
+      "group": {
+        "kind": "test"
+      },
+      "problemMatcher": [],
+      "args": []
+    },
+    {
+      "label": "Tracking: run TCP server + API",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "-m",
+        "navic_tcp.server_main",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "9000",
+        "--api-host",
+        "127.0.0.1",
+        "--api-port",
+        "8001"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracking: simulate 3 devices",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "-m",
+        "navic_tcp.client_main",
+        "--devices",
+        "3",
+        "--count",
+        "10",
+        "--interval",
+        "1"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracking: run tests",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tracking: show demo API commands",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv-local/bin/python",
+      "args": [
+        "-c",
+        "print('curl -i http://127.0.0.1:8001/health\\ncurl -sS http://127.0.0.1:8001/devices\\ncurl -sS http://127.0.0.1:8001/devices/SIM-IMEI-000000000001\\ncurl -sS \\\"http://127.0.0.1:8001/devices/SIM-IMEI-000000000001/history?limit=20\\\"')"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

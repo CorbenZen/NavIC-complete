@@ -1,0 +1,41 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = [
+    ".venv",
+    ".venv-local",
+    "frontend/node_modules",
+    "frontend/vite/build",
+    "navic_dev.db",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "E402",      # Settings must load before modules that read them at import time.
+    "E501",      # Formatter controls line length.
+    "E701",      # Compact NMEA parsing intentionally combines statements.
+    "E702",      # Compact NMEA parsing intentionally combines statements.
+    "E731",      # Lambda in route handler is clear in context.
+    "SIM108",    # Explicit if/else is more readable for this conditional logic.
+    "UP017",     # timezone.utc is kept for broad Python compatibility.
+    "B008",      # FastAPI dependency defaults are intentionally Depends(...).
+    "RUF012",    # Controller.operations is a class-level routing table.
+    "TRY004",    # Pydantic validators must raise ValueError.
+    "BLE001",    # Background/telemetry loops intentionally contain exceptions.
+    "S110",      # Best-effort cleanup deliberately ignores close failures.
+    "FURB162",   # Keep explicit RFC 3339 Z-to-offset parsing.
+    "SIM117",    # Nested context managers are clearer with assignments.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/*.py" = ["RUF059"]
+"navic_tcp/schema.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

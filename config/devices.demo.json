@@ -1,0 +1,62 @@
+[
+  {
+    "device_id": "IVTD_BUS_01",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "IVTD_BUS_01",
+    "registration_number": "KA-04-HB-1001",
+    "driver_id": "1",
+    "driver_name": "Demo Driver 01",
+    "sim_identifier": "DEMO-SIM-01"
+  },
+  {
+    "device_id": "IVTD_BUS_02",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "IVTD_BUS_02",
+    "registration_number": "KA-04-HB-1002",
+    "driver_id": "2",
+    "driver_name": "Demo Driver 02",
+    "sim_identifier": "DEMO-SIM-02"
+  },
+  {
+    "device_id": "IVTD_BUS_03",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "IVTD_BUS_03",
+    "registration_number": "KA-04-HB-1003",
+    "driver_id": "3",
+    "driver_name": "Demo Driver 03",
+    "sim_identifier": "DEMO-SIM-03"
+  },
+  {
+    "device_id": "IVTD_BUS_04",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "IVTD_BUS_04",
+    "registration_number": "KA-04-HB-1004",
+    "driver_id": "4",
+    "driver_name": "Demo Driver 04",
+    "sim_identifier": "DEMO-SIM-04"
+  },
+  {
+    "device_id": "IVTD_BUS_05",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "IVTD_BUS_05",
+    "registration_number": "KA-04-HB-1005",
+    "driver_id": "5",
+    "driver_name": "Demo Driver 05",
+    "sim_identifier": "DEMO-SIM-05"
+  },
+  {
+    "device_id": "IVTD_BUS_06",
+    "device_type": "gps_tracker_simulator",
+    "identifier_type": "simulated_serial",
+    "vehicle_id": "IVTD_BUS_06",
+    "registration_number": "KA-04-HB-1006",
+    "driver_id": "6",
+    "driver_name": "Demo Driver 06",
+    "sim_identifier": "DEMO-SIM-06"
+  }
+]
