@@ -3,7 +3,7 @@
 NavIC (CBTMS) is a college fleet operations prototype. It brings together a React and Leaflet dashboard, a FastAPI service, a local SQLite store, and a TCP receiver for vehicle telemetry. Operators can view fleet positions, review trips and reports, and manage vehicles, devices, routes, geofences, and alerts.
 
 > **Prototype data:** No IVTD hardware is connected. Bundled buses and telemetry are simulator data and remain labelled as simulated; they are not live fleet records.
-
+---
 ## Run the complete application
 
 Requirements: Python 3.11+, Node.js, and npm. On Fedora, the setup script installs project dependencies and prepares the local environment:
