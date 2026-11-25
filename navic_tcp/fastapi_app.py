@@ -1,4 +1,4 @@
-"""NavIC CBTMS FastAPI application.
+"""CBTMS NavIC FastAPI application.
 
 Responsibilities:
 - REST management APIs (vehicles, drivers, routes, devices, geofences)
@@ -1250,7 +1250,7 @@ def csrf_token(request: Request):
 @app.get("/api/meta")
 def meta():
     return {
-        "application": "NavIC CBTMS",
+        "application": "CBTMS NavIC",
         "version": app.version,
         "environment": APP_ENV,
         "development_mode": DEVELOPMENT_MODE,

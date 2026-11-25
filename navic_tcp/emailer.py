@@ -61,7 +61,7 @@ def from_address() -> str:
     return (
         os.getenv("SMTP_FROM_EMAIL", "").strip()
         or os.getenv("EMAIL_FROM", "").strip()
-        or "NavIC CBTMS <no-reply@localhost>"
+        or "CBTMS NavIC <no-reply@localhost>"
     )
 
 
@@ -89,16 +89,16 @@ def delivery_status() -> dict:
 
 
 def _subject() -> str:
-    return "Your NavIC CBTMS sign-in link"
+    return "Your CBTMS NavIC sign-in link"
 
 
 def _verification_subject() -> str:
-    return "Verify your NavIC CBTMS email address"
+    return "Verify your CBTMS NavIC email address"
 
 
 def _bodies(link: str, expires_minutes: int) -> tuple[str, str]:
     text = (
-        "Sign in to NavIC CBTMS\n\n"
+        "Sign in to CBTMS NavIC\n\n"
         f"Open this single-use link within {expires_minutes} minutes:\n{link}\n\n"
         "If you did not request this email, you can ignore it. The link expires after one use. "
         "Never forward it to anyone.\n"
@@ -109,7 +109,7 @@ def _bodies(link: str, expires_minutes: int) -> tuple[str, str]:
 <html><body style="margin:0;padding:0;background:#f4f7f6;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
   <div style="max-width:560px;margin:32px auto;background:#ffffff;border:1px solid #dbe5e1;border-radius:14px;overflow:hidden">
     <div style="background:#0f766e;padding:22px 28px;color:#ffffff">
-      <div style="font-size:20px;font-weight:700;letter-spacing:.3px">NavIC CBTMS</div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:.3px">CBTMS NavIC</div>
       <div style="font-size:13px;opacity:.85;margin-top:3px">College Bus Tracking &amp; Management</div>
     </div>
     <div style="padding:28px">
@@ -140,7 +140,7 @@ def _verification_bodies(link: str, expires_minutes: int, first_name: str = "") 
     safe_greeting = html.escape(greeting)
     text = (
         f"{greeting}\n\n"
-        "Verify your NavIC CBTMS email address\n\n"
+        "Verify your CBTMS NavIC email address\n\n"
         f"Open this one-time link within {expires_minutes} minutes to verify your email:\n{link}\n\n"
         "If you did not request this verification, ignore this message. Do not forward the link.\n"
     )
@@ -150,7 +150,7 @@ def _verification_bodies(link: str, expires_minutes: int, first_name: str = "") 
 <html><body style="margin:0;padding:0;background:#f4f7f6;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
   <div style="max-width:560px;margin:32px auto;background:#ffffff;border:1px solid #dbe5e1;border-radius:14px;overflow:hidden">
     <div style="background:#0f766e;padding:22px 28px;color:#ffffff">
-      <div style="font-size:20px;font-weight:700;letter-spacing:.3px">NavIC CBTMS</div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:.3px">CBTMS NavIC</div>
       <div style="font-size:13px;opacity:.85;margin-top:3px">College Bus Tracking &amp; Management</div>
     </div>
     <div style="padding:28px">

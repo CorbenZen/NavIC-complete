@@ -264,7 +264,7 @@ Choose a provider with `EMAIL_PROVIDER`:
 
 ```bash
 EMAIL_PROVIDER=resend
-EMAIL_FROM="NavIC CBTMS <no-reply@your-domain.edu>"
+EMAIL_FROM="CBTMS NavIC <no-reply@your-domain.edu>"
 EMAIL_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
@@ -274,7 +274,7 @@ Delivery uses Resend's HTTPS API, so no extra Python package is required. The `E
 
 ```bash
 EMAIL_PROVIDER=smtp
-EMAIL_FROM="NavIC CBTMS <no-reply@your-domain.edu>"
+EMAIL_FROM="CBTMS NavIC <no-reply@your-domain.edu>"
 SMTP_HOST=smtp.your-provider.com
 SMTP_PORT=587
 SMTP_USERNAME=...

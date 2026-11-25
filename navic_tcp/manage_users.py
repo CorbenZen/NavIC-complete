@@ -1,4 +1,4 @@
-"""Controlled user provisioning for passwordless NavIC CBTMS accounts.
+"""Controlled user provisioning for passwordless CBTMS NavIC accounts.
 
 Examples:
     python -m navic_tcp.manage_users bootstrap-admin --email admin@college.edu
@@ -212,7 +212,7 @@ def cmd_invite(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Provision NavIC CBTMS users safely")
+    parser = argparse.ArgumentParser(description="Provision CBTMS NavIC users safely")
     sub = parser.add_subparsers(dest="command", required=True)
 
     bootstrap = sub.add_parser("bootstrap-admin", help="create or promote the first administrator")

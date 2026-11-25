@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NMEA log replayer for NavIC CBTMS.
+NMEA log replayer for CBTMS NavIC.
 
 Reads a raw NMEA log (one sentence per line) and sends each sentence
 as a telemetry message to the TCP ingestion endpoint.  The script is

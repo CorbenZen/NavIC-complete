@@ -1,4 +1,4 @@
-# NavIC CBTMS — Audit (current)
+# CBTMS NavIC — Audit (current)
 
 Date: 2026-11-15. Full detail, evidence and command output: `docs/AUDIT_FINDINGS_2026-11-15.md`.
 Progress tracker: `docs/AUDIT_PROGRESS.md`. Decisions: `docs/AUDIT_DECISIONS.md`.

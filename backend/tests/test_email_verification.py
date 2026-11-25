@@ -194,7 +194,7 @@ class EmailVerificationTests(unittest.TestCase):
     def test_verification_email_template_and_smtp_failure(self):
         raw_link = "https://navic.example/auth/verify-email?token=one-time-secret"
         text_body, html_body = emailer._verification_bodies(raw_link, 30, "Ada")
-        self.assertIn("NavIC CBTMS", text_body)
+        self.assertIn("CBTMS NavIC", text_body)
         self.assertIn("Hello Ada", text_body)
         self.assertIn("Hello Ada", html_body)
         self.assertIn("30 minutes", text_body)
@@ -222,7 +222,7 @@ class EmailVerificationTests(unittest.TestCase):
             with open(f"{directory}/mail.jsonl", encoding="utf-8") as capture_file:
                 message = json.loads(capture_file.readline())
         self.assertEqual(message["to"], self.email)
-        self.assertIn("Verify your NavIC CBTMS email address", message["subject"])
+        self.assertIn("Verify your CBTMS NavIC email address", message["subject"])
         self.assertIn("Hello Ada", message["text"])
         self.assertIn(raw_link, message["text"])
         self.assertIn("30 minutes", message["text"])
