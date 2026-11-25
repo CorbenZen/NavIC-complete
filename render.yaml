@@ -68,5 +68,9 @@ services:
         value: "false"
       - key: DEMO_SIMULATION_ENABLED
         value: "true"
+      # Seeded demo fleet devices (IVTD_BUS_01-06); the in-app simulation and
+      # ingestion both read this registry.
+      - key: DEVICE_REGISTRY
+        value: config/devices.demo.json
       - key: SEED_DEMO_DATA
         value: "true"

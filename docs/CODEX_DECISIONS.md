@@ -24,3 +24,8 @@
 - **Build the frontend on Node 26 in Docker.** `npm ci` on Node 22/npm 10 fails with ERESOLVE on the existing `@eslint/js@10` vs `eslint@9` peer range; Node 26/npm 11 matches the local toolchain. The lint-dependency mismatch itself is unchanged and still worth fixing.
 - **Disable TCP and enable in-app demo simulation on Render.** Render exposes HTTP(S) only; telemetry stays labelled simulated. No hardware behaviour was invented.
 - **Verified with Podman against a throwaway `postgres:17`.** Migrations 0001→0008 applied on a fresh database, idempotent seed, clean restart, health/meta 200, protected routes 401, sign-in page rendered. Test secrets were generated per run and deleted with the containers.
+
+## 2026-11-26
+
+- **Demo simulation now reads the configured `DEVICE_REGISTRY`.** `DemoSimulation._get_demo_devices` hardcoded `config/devices.json` (3 `SIM-*` devices), while the server, the seed and the TCP simulator use `config/devices.demo.json` (`IVTD_BUS_01-06`). On Render every simulated fix was dropped as "telemetry for unknown device", so the map stayed empty. Fixed to `os.getenv("DEVICE_REGISTRY", DEFAULT_REGISTRY_PATH)`, matching `fastapi_app.registry`; `render.yaml` sets `DEVICE_REGISTRY=config/devices.demo.json` explicitly. Regression tests: `backend/tests/test_demo_simulation.py`. Verified in a production-mode container against `postgres:17`: 6 `IVTD_BUS_*` devices, 13 persisted fixes each, 0 unknown-device warnings, `/api/tracking/latest` returned all six with `simulated: true`.
+- **Added `scripts/make_admin_hash.py`.** Generates `ADMIN_PASSWORD_HASH` with a confirm prompt; `--show` echoes input for terminals where hidden typing was confusing. Prints only the hash.

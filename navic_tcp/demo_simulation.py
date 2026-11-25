@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import random
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
@@ -60,9 +61,15 @@ class DemoSimulation:
         self._phase_offsets = [0, 60, 120, 180, 240, 300]
 
     def _get_demo_devices(self) -> list[str]:
-        """Get list of simulated device IDs from registry."""
+        """Get simulated device IDs from the configured device registry.
+
+        Uses the same ``DEVICE_REGISTRY`` the server ingests against, so the
+        demo emits fixes for devices that exist in the database (e.g. the
+        seeded ``IVTD_BUS_*`` fleet) instead of a different registry file whose
+        devices would be rejected as unknown.
+        """
         try:
-            registry = DeviceRegistry.load(DEFAULT_REGISTRY_PATH)
+            registry = DeviceRegistry.load(os.getenv("DEVICE_REGISTRY", str(DEFAULT_REGISTRY_PATH)))
             simulated_devices = [
                 entry["device_id"]
                 for entry in registry.list()
