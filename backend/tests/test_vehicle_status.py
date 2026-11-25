@@ -12,7 +12,12 @@ from sqlalchemy.pool import StaticPool
 from navic_tcp import fastapi_app as api
 from navic_tcp.db import Base
 from navic_tcp.models import Bus, Driver, LocationHistory, TrackingDevice
-from navic_tcp.vehicle_status import classify_vehicle_status
+from navic_tcp.vehicle_status import (
+    DEMO_FRESHNESS_SECONDS,
+    FRESHNESS_SECONDS,
+    classify_vehicle_status,
+    freshness_for_source,
+)
 
 NOW = datetime.now(timezone.utc)
 
@@ -130,6 +135,64 @@ class VehicleStatusApiTests(unittest.TestCase):
         events = [call.args[0] for call in publish.await_args_list]
         transition = next(event for event in events if event["device_id"] == "DEVICE-MOVE")
         self.assertEqual((transition["type"], transition["status"]), ("vehicle_status", "OUT_OF_NETWORK"))
+
+
+class DisplayFreshnessBySourceTests(unittest.TestCase):
+    """Refreshed pages use the provenance window: simulator 20 s, hardware 5 min."""
+
+    def setUp(self):
+        self.engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+        Base.metadata.create_all(self.engine)
+        self.factory = sessionmaker(bind=self.engine, autoflush=False, expire_on_commit=False)
+        self.session_patch = patch.object(api, "SessionLocal", self.factory)
+        self.session_patch.start()
+        specs = [
+            # name, data_source, simulated, age seconds
+            ("SIM-OLD", "simulator", True, 60),
+            ("SIM-FRESH", "simulator", True, 5),
+            ("HW-60S", "hardware", False, 60),
+            ("HW-OLD", "hardware", False, 301),
+        ]
+        with self.factory() as db:
+            for index, (name, source, simulated, age) in enumerate(specs):
+                bus = Bus(vehicle_id=name, registration_number=f"REG-{name}")
+                device = TrackingDevice(device_id=f"DEVICE-{name}", device_type="test", identifier_type="imei", bus=bus)
+                db.add(bus)
+                db.flush()
+                db.add(LocationHistory(
+                    device_id=device.device_id,
+                    message_id=f"10000000-0000-0000-0000-{index + 1:012d}",
+                    timestamp=NOW - timedelta(seconds=age), received_at=NOW,
+                    latitude=13.0, longitude=77.0, speed=0.0, course=0,
+                    ignition=True, simulated=simulated, data_source=source, fix_valid=True,
+                ))
+            db.commit()
+
+    def tearDown(self):
+        self.session_patch.stop()
+        self.engine.dispose()
+
+    expected = {
+        "SIM-OLD": "out_of_network",
+        "SIM-FRESH": "stopped",
+        "HW-60S": "stopped",
+        "HW-OLD": "out_of_network",
+    }
+
+    def test_freshness_window_follows_data_source(self):
+        self.assertEqual(freshness_for_source("simulator"), DEMO_FRESHNESS_SECONDS)
+        self.assertEqual(freshness_for_source("hardware"), FRESHNESS_SECONDS)
+        self.assertEqual(freshness_for_source(None), FRESHNESS_SECONDS)
+
+    def test_tracking_latest_uses_source_window(self):
+        rows = api.tracking_latest({"role": "admin"})["vehicles"]
+        got = {row["registration_number"].removeprefix("REG-"): row["status_key"] for row in rows}
+        self.assertEqual(got, self.expected)
+
+    def test_bus_listing_uses_source_window(self):
+        rows = api.buses({"role": "admin"})
+        got = {row.registration_number.removeprefix("REG-"): row.status_key for row in rows}
+        self.assertEqual(got, self.expected)
 
 
 if __name__ == "__main__":

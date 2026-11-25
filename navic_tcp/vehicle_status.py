@@ -15,6 +15,17 @@ TOING_SPEED_KMH = 5.0
 FUTURE_CLOCK_SKEW_SECONDS = 120
 DEMO_FRESHNESS_SECONDS = 20.0  # Shorter window for demo devices
 
+
+def freshness_for_source(data_source: str | None) -> float:
+    """Display freshness window for a persisted fix, chosen by its provenance.
+
+    Simulator fixes arrive every 1-2 s, so they use the short demo window and
+    a stopped simulation reads as Out Of N/w within seconds after a page
+    refresh, matching the live view. Hardware and unknown sources keep the
+    5-minute window that tolerates brief real-world signal loss.
+    """
+    return DEMO_FRESHNESS_SECONDS if data_source == "simulator" else FRESHNESS_SECONDS
+
 STATUS_LABELS = {
     "ON_MOVE": "On Move",
     "STOPPED": "Stopped",
