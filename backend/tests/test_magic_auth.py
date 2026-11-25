@@ -211,17 +211,17 @@ class MagicAuthTests(unittest.TestCase):
     def test_designated_admin_uses_password_and_never_gets_a_magic_link(self):
         with patch.object(api, "email_delivery_status", return_value={"provider": "console", "configured": True}):
             with self.assertRaises(HTTPException) as admin_link:
-                api.request_magic_link(api.MagicLinkIn(email="admin@example.invalid"), make_request())
+                api.request_magic_link(api.MagicLinkIn(email="1hk24cs144@hkbk.edu.in"), make_request())
         self.assertEqual(admin_link.exception.status_code, 400)
 
     def test_existing_admin_magic_link_cannot_bypass_password_authentication(self):
         with self.factory() as db:
-            user = db.scalar(select(User).where(User.email == "admin@example.invalid"))
+            user = db.scalar(select(User).where(User.email == "1hk24cs144@hkbk.edu.in"))
             if user is None:
                 db.add(
                     User(
-                        username="admin@example.invalid",
-                        email="admin@example.invalid",
+                        username="1hk24cs144@hkbk.edu.in",
+                        email="1hk24cs144@hkbk.edu.in",
                         role="admin",
                         active=True,
                         is_email_verified=True,
@@ -231,20 +231,20 @@ class MagicAuthTests(unittest.TestCase):
                 db.commit()
         with patch.object(api, "email_delivery_status", return_value={"provider": "console", "configured": True}):
             with self.assertRaises(HTTPException) as admin_link:
-                api.request_magic_link(api.MagicLinkIn(email="admin@example.invalid"), make_request())
+                api.request_magic_link(api.MagicLinkIn(email="1hk24cs144@hkbk.edu.in"), make_request())
         self.assertEqual(admin_link.exception.status_code, 400)
 
     def test_admin_password_creates_verified_admin_session_and_refresh_resolves(self):
         with patch.dict(os.environ, {"ADMIN_PASSWORD_HASH": hash_password("admin-pass")}):
             response = Response()
-            result = api.admin_login(api.AdminLoginIn(email="admin@example.invalid", password="admin-pass"), make_request(), response)
+            result = api.admin_login(api.AdminLoginIn(email="1hk24cs144@hkbk.edu.in", password="admin-pass"), make_request(), response)
             self.assertEqual(result["user"]["role"], "admin")
             cookie_headers = response.headers.getlist("set-cookie")
             self.assertTrue(any(auth_service.SESSION_COOKIE in header for header in cookie_headers))
             session_cookie = next(c for c in cookie_headers if auth_service.SESSION_COOKIE in c)
             raw = session_cookie.split(";")[0].split("=", 1)[1]
             with self.factory() as db:
-                user = db.scalar(select(User).where(User.email == "admin@example.invalid"))
+                user = db.scalar(select(User).where(User.email == "1hk24cs144@hkbk.edu.in"))
                 self.assertIsNotNone(user)
                 self.assertEqual(user.role, "admin")
                 session = db.scalar(select(AuthSession).where(AuthSession.token_hash == auth_service.token_hash(raw)))
@@ -256,18 +256,18 @@ class MagicAuthTests(unittest.TestCase):
         with patch.dict(os.environ, {"ADMIN_PASSWORD_HASH": hash_password("correct-password")}):
             response = Response()
             with self.assertRaises(HTTPException) as wrong:
-                api.admin_login(api.AdminLoginIn(email="admin@example.invalid", password="wrong-password"), make_request(), response)
+                api.admin_login(api.AdminLoginIn(email="1hk24cs144@hkbk.edu.in", password="wrong-password"), make_request(), response)
             self.assertEqual(wrong.exception.status_code, 401)
             with self.assertRaises(HTTPException) as legacy:
-                api.login(api.LoginIn(username="admin@example.invalid", password="correct-password"), make_request(), response)
+                api.login(api.LoginIn(username="1hk24cs144@hkbk.edu.in", password="correct-password"), make_request(), response)
             self.assertEqual(legacy.exception.status_code, 401)
 
     def test_admin_login_promotes_existing_account_without_duplicate(self):
         with self.factory() as db:
             db.add(
                 User(
-                    username="admin@example.invalid",
-                    email="admin@example.invalid",
+                    username="1hk24cs144@hkbk.edu.in",
+                    email="1hk24cs144@hkbk.edu.in",
                     role="viewer",
                     active=True,
                     is_email_verified=True,
@@ -276,11 +276,11 @@ class MagicAuthTests(unittest.TestCase):
             db.commit()
         with patch.dict(os.environ, {"ADMIN_PASSWORD_HASH": hash_password("admin-pass")}):
             response = Response()
-            result = api.admin_login(api.AdminLoginIn(email="admin@example.invalid", password="admin-pass"), make_request(), response)
+            result = api.admin_login(api.AdminLoginIn(email="1hk24cs144@hkbk.edu.in", password="admin-pass"), make_request(), response)
             self.assertEqual(result["user"]["role"], "admin")
         with self.factory() as db:
             count = db.scalar(
-                select(func.count()).select_from(User).where(User.email == "admin@example.invalid")
+                select(func.count()).select_from(User).where(User.email == "1hk24cs144@hkbk.edu.in")
             )
             self.assertEqual(count, 1)
 
@@ -289,7 +289,7 @@ class MagicAuthTests(unittest.TestCase):
             response = Response()
             for _ in range(6):
                 with self.assertRaises(HTTPException) as e:
-                    api.admin_login(api.AdminLoginIn(email="admin@example.invalid", password="wrong"), make_request(), response)
+                    api.admin_login(api.AdminLoginIn(email="1hk24cs144@hkbk.edu.in", password="wrong"), make_request(), response)
             self.assertEqual(e.exception.status_code, 429)
 
     def test_normal_user_cannot_request_admin_session_or_access_admin_api(self):

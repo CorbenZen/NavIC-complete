@@ -1,0 +1,24 @@
+# Keep secrets, local data and bulky caches out of the Docker build context.
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+dev-mail*.jsonl
+.git
+.venv*
+venv
+**/node_modules
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.vite
+frontend/vite/build
+frontend/dist
+_archive
+backup
+backups
+output
+tmp
+docs/screenshots

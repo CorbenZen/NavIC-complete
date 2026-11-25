@@ -156,6 +156,7 @@ class HealthAndStaticTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["version"], "3.0.0")
         self.assertEqual(payload["database"], "ok")
         self.assertEqual(payload["environment"], "development")
         self.assertEqual(payload["tcp"], "disabled")
@@ -174,7 +175,6 @@ class HealthAndStaticTests(unittest.TestCase):
         response = _CLIENT.get("/devices", headers={"Accept": "text/html"})
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response.headers["content-type"])
-
 
 class AuthenticationAndValidationTests(unittest.TestCase):
     def test_password_hashing_round_trip(self):

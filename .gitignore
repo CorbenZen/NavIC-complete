@@ -57,7 +57,5 @@ _archive/
 *.sql
 *.log
 
-# Never publish local snapshots or local development runtimes.
-backups/
-backup/
-.venv-local/
+# Local virtual environments created by setup-fedora.sh
+.venv-*/

@@ -83,6 +83,11 @@ from .reporting import (
     trip_groups,
     valid_coordinates,
 )
+
+APP_VERSION = (Path(__file__).resolve().parents[1] / "VERSION").read_text(encoding="utf-8").strip()
+if not APP_VERSION:
+    raise RuntimeError("VERSION file must contain the application release version")
+
 from .schema import ensure_schema
 from .security import (
     LoginRateLimiter,
@@ -524,11 +529,6 @@ def _iso(value: datetime | None) -> str | None:
     return stamp.isoformat() if stamp else None
 
 
-def speed_limit(db) -> float:
-    row = db.get(SystemSetting, "overspeed_kmh")
-    return float(row.value) if row else float(os.getenv("OVERSPEED_KMH", "80"))
-
-
 def _json_safe(value: Any) -> Any:
     """Replace non-finite values with null before strict JSON responses; other values retain their type."""
     if isinstance(value, float):
@@ -538,6 +538,11 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
     return value
+
+
+def speed_limit(db) -> float:
+    row = db.get(SystemSetting, "overspeed_kmh")
+    return float(row.value) if row else float(os.getenv("OVERSPEED_KMH", "80"))
 
 
 def device_offline_seconds(db) -> float:
@@ -1097,7 +1102,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="NavIC Fleet API",
-    version="2.0.0",
+    version=APP_VERSION,
     description="College Bus Tracking and Management System API",
     lifespan=lifespan,
 )
@@ -1298,7 +1303,7 @@ def login(data: LoginIn, request: Request, response: Response):
 
 
 def configured_admin_email() -> str:
-    return auth_service.normalize_email(os.getenv("ADMIN_EMAIL", "admin@example.invalid"))
+    return auth_service.normalize_email(os.getenv("ADMIN_EMAIL", "1hk24cs144@hkbk.edu.in"))
 
 
 @app.post("/auth/admin-login")
@@ -2133,13 +2138,13 @@ def report_data(
                         "distance_km": round(trip_distance_km(group), 3),
                         "max_speed_kmh": round(max(speeds), 1) if speeds else None,
                         "avg_speed_kmh": round(sum(speeds) / len(speeds), 1) if speeds else None,
+                        "simulated": all(bool(point.simulated) for point in group),
+                        "data_sources": sources,
                         "records": len(group),
                     }
                 )
             rules = {
                 "trip_definition": "Consecutive fixes from one device separated by no more than 30 minutes.",
-                        "simulated": all(bool(point.simulated) for point in group),
-                        "data_sources": sources,
                 "distance": "great-circle segments up to 30 minutes and 100 km",
             }
 

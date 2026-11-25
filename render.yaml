@@ -1,0 +1,72 @@
+# Render Blueprint for NavIC: one Docker web service + one managed PostgreSQL.
+# Deploy guide: docs/DEPLOY_RENDER.md
+#
+# Values marked `sync: false` are prompted for in the Render dashboard when the
+# Blueprint is created. Never commit real secret values to this file.
+
+databases:
+  - name: navic-db
+    plan: free
+    databaseName: navic
+    user: navic
+
+services:
+  - type: web
+    name: navic
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      # --- Database (wired automatically) ---
+      - key: DATABASE_URL
+        fromDatabase:
+          name: navic-db
+          property: connectionString
+
+      # --- Runtime mode ---
+      - key: APP_ENV
+        value: production
+      - key: DEMO_AUTH_BYPASS
+        value: "false"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none
+
+      # --- Secrets Render generates for you ---
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_IP_SALT
+        generateValue: true
+
+      # --- Public URL of this service, e.g. https://navic.onrender.com ---
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+      # --- Administrator sign-in ---
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+
+      # --- Email delivery (required in production: resend or smtp) ---
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: EMAIL_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+
+      # --- Telemetry: no hardware and no public TCP port on Render ---
+      - key: TCP_ENABLED
+        value: "false"
+      - key: DEMO_SIMULATION_ENABLED
+        value: "true"
+      - key: SEED_DEMO_DATA
+        value: "true"
